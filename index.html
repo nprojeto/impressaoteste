@@ -24,6 +24,7 @@
   --danger:#ff8a80; --field:#161a18; --shadow:none;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 .app{max-width:1180px;margin:0 auto;padding:16px}
 header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
@@ -69,6 +70,11 @@ button.danger{color:var(--danger)}
 .label .tpl.u{border-bottom:.15mm solid #9aa;height:2.6mm}
 .label .logo{position:absolute;border:.2mm dashed #b8c4bb;color:#9aa;font:bold 1.8mm Arial,sans-serif;display:flex;align-items:center;justify-content:center;border-radius:1mm}
 .label .gl{position:absolute;background:#000}
+#preview .t{cursor:move;touch-action:none;border-radius:.3mm}
+#preview .t:hover{outline:.25mm dashed #1f7a3f}
+#preview .t.sel{outline:.3mm solid #1f7a3f;background:rgba(31,122,63,.08)}
+#preview .t.ph{color:#b9c2bc;font-style:italic}
+.offwarn{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .actions{display:flex;flex-wrap:wrap;gap:8px}
 table.lay{width:100%;border-collapse:collapse;font-size:13px}
 table.lay th{text-align:left;color:var(--muted);font-weight:600;padding:4px}
@@ -199,7 +205,10 @@ pre.cmd{background:var(--field);border:1px solid var(--line);border-radius:9px;p
     <section class="card">
       <h2>Prévia <span class="note" id="sizeNote" style="text-transform:none;letter-spacing:0"></span></h2>
       <div class="pv-stage"><div class="pv-wrap" id="pvWrap"><div class="label" id="preview"></div></div></div>
+      <div class="warnbox offwarn" id="offWarn" hidden><span id="offWarnTxt"></span><button class="small" id="zeroOffBtn">Zerar</button></div>
       <p class="note" id="pvNote" style="margin-top:10px"></p>
+      <p class="note" style="margin:4px 0 8px">✋ <b>Arraste</b> os dados na prévia para posicioná-los. Clique em um campo e use as <b>setas</b> do teclado para ajuste fino (0,1 mm; com Shift, 1 mm).</p>
+      <button class="small" id="resetAllBtn">Restaurar posições e deslocamento padrão</button>
       <label class="chk"><input type="checkbox" id="hideSep"> Não imprimir “/” e “:” (usar os já impressos na etiqueta)</label>
     </section>
   </div>
@@ -359,26 +368,31 @@ const DEF_LAYOUT = {
   ],
   overlay: [
     {k:'item',  label:'Item',        x:14,   y:11.9, h:2.6, b:1, on:1},
-    {k:'procD', label:'Data proc.',  x:15.3, y:18.2, h:2.4, b:1, on:1},
-    {k:'procH', label:'Hora proc.',  x:29.8, y:18.2, h:2.4, b:1, on:1},
-    {k:'vencD', label:'Data venc.',  x:15.3, y:23.7, h:2.4, b:1, on:1},
-    {k:'vencH', label:'Hora venc.',  x:29.8, y:23.7, h:2.4, b:1, on:1},
+    {k:'procD', label:'Data proc.',  x:15.4, y:18.5, h:2.1, b:1, on:1},
+    {k:'procH', label:'Hora proc.',  x:29.9, y:18.5, h:2.1, b:1, on:1},
+    {k:'vencD', label:'Data venc.',  x:15.4, y:24.0, h:2.1, b:1, on:1},
+    {k:'vencH', label:'Hora venc.',  x:29.9, y:24.0, h:2.1, b:1, on:1},
     {k:'nome',  label:'Nome',        x:14,   y:29.4, h:2.6, b:1, on:1},
   ]
 };
+const LAYOUT_VER = 2;
 const clone = o => JSON.parse(JSON.stringify(o));
 const DEF = {
   mode:'overlay', conn:'browser', lang:'zpl', dpi:203, w:40, h:40, gap:3, dark:10,
   offX:0, offY:0, baud:'9600', rot:false, hideSep:false, loja:'',
   layouts: clone(DEF_LAYOUT), items:[], names:[],
-  last:{item:'', val:24, unit:'h', nome:''}
+  last:{item:'', val:24, unit:'h', nome:''}, layoutVer: LAYOUT_VER
 };
 
 let cfg = load();
 function load(){
   try{
     const s = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (s) return Object.assign(clone(DEF), s, {layouts: Object.assign(clone(DEF_LAYOUT), s.layouts||{})});
+    if (s){
+      const c = Object.assign(clone(DEF), s, {layouts: Object.assign(clone(DEF_LAYOUT), s.layouts||{})});
+      if (s.layoutVer !== LAYOUT_VER){ c.layouts = clone(DEF_LAYOUT); c.offX = 0; c.offY = 0; c.layoutVer = LAYOUT_VER; try{ localStorage.setItem(KEY, JSON.stringify(c)); }catch(e){} }
+      return c;
+    }
   }catch(e){}
   return clone(DEF);
 }
@@ -422,9 +436,12 @@ function values(){
   };
   return { item, procD:fmtD(p,sep), procH:fmtH(p,sep), vencD:fmtD(v,sep), vencH:fmtH(v,sep), nome };
 }
-function elements(){
+const PH = {item:'ITEM', nome:'NOME', loja:'LOJA'};
+function elements(preview){
   const val = values();
-  return cfg.layouts[cfg.mode].filter(e => e.on && val[e.k]).map(e => ({...e, text: val[e.k]}));
+  return cfg.layouts[cfg.mode].map((e,i)=>({...e, i}))
+    .filter(e => e.on && (val[e.k] || (preview && PH[e.k])))
+    .map(e => ({...e, text: val[e.k] || PH[e.k], ph: !val[e.k]}));
 }
 
 /* ---------- HTML rendering (preview + driver print) ---------- */
@@ -448,27 +465,34 @@ function drawGrid(inner){
   for (let x=0; x<=cfg.w; x+=5) inner.appendChild(mkDiv('gl', {left:x+'mm', top:0, width:(x%10?0.15:0.3)+'mm', height:cfg.h+'mm'}));
   for (let y=0; y<=cfg.h; y+=5) inner.appendChild(mkDiv('gl', {top:y+'mm', left:0, height:(y%10?0.15:0.3)+'mm', width:cfg.w+'mm'}));
 }
-function renderLabel(el, {template=false, grid=false, offset=false}={}){
+let selIdx = -1;
+function renderLabel(el, {template=false, grid=false, offset=false, preview=false}={}){
   el.innerHTML=''; el.style.width=cfg.w+'mm'; el.style.height=cfg.h+'mm';
   if (template && cfg.mode==='overlay') drawTemplate(el);
   const inner = mkDiv('inner', offset ? {transform:`translate(${cfg.offX}mm,${cfg.offY}mm)`} : {});
   el.appendChild(inner);
   if (grid) { drawGrid(inner); return; }
-  for (const e of elements())
-    inner.appendChild(mkDiv('t', {left:e.x+'mm', top:e.y+'mm', fontSize:e.h+'mm', fontWeight:e.b?'700':'400'}, e.text));
+  for (const e of elements(preview)){
+    const t = mkDiv('t'+(preview&&e.ph?' ph':'')+(preview&&e.i===selIdx?' sel':''), {left:e.x+'mm', top:e.y+'mm', fontSize:e.h+'mm', fontWeight:e.b?'700':'400'}, e.text);
+    t.dataset.i = e.i; inner.appendChild(t);
+  }
 }
 function renderPreview(){
   const el = $('#preview');
-  renderLabel(el, {template:true, offset:true});
+  renderLabel(el, {template:true, offset:true, preview:true});
+  const ow = $('#offWarn'), hasOff = (+cfg.offX||0)!==0 || (+cfg.offY||0)!==0;
+  ow.hidden = !hasOff;
+  if (hasOff) $('#offWarnTxt').textContent = `Deslocamento ativo: ${cfg.offX} mm → e ${cfg.offY} mm ↓ (aba Impressora). Use só para compensar a impressora.`;
   const pxmm = 96/25.4, target = Math.min(340, ($('#pvWrap').parentElement.clientWidth||340) - 40);
   const s = Math.max(1, Math.min(4, target / (Math.max(cfg.w, cfg.h)*pxmm)));
-  el.style.transform = `scale(${s})`;
+  el.style.transform = `scale(${s})`; pvScale = s;
   $('#pvWrap').style.width = (cfg.w*pxmm*s)+'px'; $('#pvWrap').style.height = (cfg.h*pxmm*s)+'px';
   $('#sizeNote').textContent = `· ${cfg.w} × ${cfg.h} mm`;
   $('#pvNote').textContent = cfg.mode==='overlay'
     ? 'Os textos em cinza simulam o que já vem impresso no rolo (não saem na impressão). Só os dados em preto são impressos.'
     : 'Tudo o que aparece na prévia será impresso na etiqueta em branco.';
 }
+let pvScale = 1;
 function buildPrintArea(copies, grid){
   const pa = $('#printArea'); pa.innerHTML='';
   for (let i=0;i<copies;i++){ const l = mkDiv('label',{}); renderLabel(l,{grid, offset:true}); pa.appendChild(l); }
@@ -741,6 +765,43 @@ $$('#tabs button').forEach(b => b.onclick = () => {
   $$('#tabs button').forEach(x=>x.classList.toggle('on', x===b));
   $$('.panel').forEach(p=>p.classList.toggle('on', p.id==='tab-'+b.dataset.tab));
 });
+
+/* ---------- drag & nudge in preview ---------- */
+const PXMM = 96/25.4, r1 = v => Math.round(v*10)/10;
+let drag = null;
+$('#preview').addEventListener('pointerdown', ev => {
+  const t = ev.target.closest('.t'); if (!t) { selIdx=-1; renderPreview(); return; }
+  ev.preventDefault(); if (document.activeElement) document.activeElement.blur();
+  selIdx = +t.dataset.i;
+  $$('#preview .t').forEach(x => x.classList.toggle('sel', x===t));
+  const e = cfg.layouts[cfg.mode][selIdx];
+  drag = {t, e, sx:ev.clientX, sy:ev.clientY, x0:e.x, y0:e.y};
+  t.setPointerCapture(ev.pointerId);
+});
+$('#preview').addEventListener('pointermove', ev => {
+  if (!drag) return;
+  const k = pvScale*PXMM;
+  drag.e.x = r1(Math.max(-5, Math.min(cfg.w, drag.x0 + (ev.clientX-drag.sx)/k)));
+  drag.e.y = r1(Math.max(-5, Math.min(cfg.h, drag.y0 + (ev.clientY-drag.sy)/k)));
+  drag.t.style.left = drag.e.x+'mm'; drag.t.style.top = drag.e.y+'mm';
+});
+const endDrag = () => { if (!drag) return; drag = null; save(); renderLayTable(); renderPreview(); };
+$('#preview').addEventListener('pointerup', endDrag);
+$('#preview').addEventListener('pointercancel', endDrag);
+document.addEventListener('keydown', ev => {
+  if (selIdx < 0 || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  const st = ev.shiftKey ? 1 : 0.1, e = cfg.layouts[cfg.mode][selIdx]; if (!e) return;
+  const mv = {ArrowLeft:[-st,0], ArrowRight:[st,0], ArrowUp:[0,-st], ArrowDown:[0,st]}[ev.key];
+  if (ev.key === 'Escape'){ selIdx=-1; renderPreview(); return; }
+  if (!mv) return;
+  ev.preventDefault(); e.x = r1(e.x+mv[0]); e.y = r1(e.y+mv[1]);
+  save(); renderLayTable(); renderPreview();
+});
+$('#zeroOffBtn').onclick = () => { cfg.offX=0; cfg.offY=0; $('#offX').value=0; $('#offY').value=0; save(); renderPreview(); toast('Deslocamento zerado.'); };
+$('#resetAllBtn').onclick = () => {
+  cfg.layouts[cfg.mode] = clone(DEF_LAYOUT[cfg.mode]); cfg.offX=0; cfg.offY=0; $('#offX').value=0; $('#offY').value=0;
+  selIdx=-1; save(); renderLayTable(); renderPreview(); toast('Posições e deslocamento restaurados.');
+};
 
 /* ---------- init ---------- */
 $('#item').value = cfg.last.item || '';
