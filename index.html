@@ -74,6 +74,12 @@ button.danger{color:var(--danger)}
 #preview .t:hover{outline:.25mm dashed #1f7a3f}
 #preview .t.sel{outline:.3mm solid #1f7a3f;background:rgba(31,122,63,.08)}
 #preview .t.ph{color:#b9c2bc;font-style:italic}
+.label img.lg{position:absolute;image-rendering:pixelated;-webkit-user-drag:none;user-select:none}
+.label img.tlogo{position:absolute;object-fit:contain;opacity:.55}
+.logobox{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.logothumb{width:64px;height:40px;border:1px solid var(--line);border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.logothumb img{max-width:100%;max-height:100%}
+input[type=range]{padding:0}
 .offwarn{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .actions{display:flex;flex-wrap:wrap;gap:8px}
 table.lay{width:100%;border-collapse:collapse;font-size:13px}
@@ -134,6 +140,24 @@ pre.cmd{background:var(--field);border:1px solid var(--line);border-radius:9px;p
         <div>
           <label class="f" for="loja">Texto do cabeçalho (ex.: nome da loja)</label>
           <input id="loja" placeholder="Ex.: Loja Centro" maxlength="30">
+          <p class="note" style="margin:4px 0 0">Usado no topo da etiqueta só quando não há logo.</p>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label class="f">Logo</label>
+          <div class="logobox">
+            <div class="logothumb" id="logoThumb"><span class="note">sem logo</span></div>
+            <button class="small" id="logoPick">Escolher imagem…</button>
+            <button class="small danger" id="logoDel" hidden>Remover</button>
+            <input type="file" id="logoFile" accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif" hidden>
+          </div>
+          <p class="note" id="logoNote" style="margin:6px 0 0"></p>
+          <div id="logoOpts" hidden>
+            <label class="chk"><input type="checkbox" id="logoMono"> Converter para preto e branco (recomendado em impressora térmica)</label>
+            <div id="logoThBox"><label class="f" for="logoTh">Contraste da logo: <b id="logoThVal"></b></label><input type="range" id="logoTh" min="40" max="240" step="5"></div>
+          </div>
         </div>
       </div>
 
@@ -358,13 +382,14 @@ const WEEK = ['DOMINGO','SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO'];
 
 const DEF_LAYOUT = {
   blank: [
-    {k:'loja',  label:'Cabeçalho',        x:2,  y:1.5,  h:3.2, b:1, on:1},
-    {k:'item',  label:'Item',             x:2,  y:6.5,  h:4.5, b:1, on:1},
-    {k:'proc',  label:'Manipulação',      x:2,  y:13.5, h:3.0, b:0, on:1},
-    {k:'vencT', label:'Título “VALIDADE”',x:2,  y:19,   h:3.0, b:1, on:1},
-    {k:'venc',  label:'Data/hora validade',x:2, y:23,   h:5.0, b:1, on:1},
-    {k:'dia',   label:'Dia da semana',    x:2,  y:29.5, h:3.2, b:1, on:1},
-    {k:'nome',  label:'Responsável',      x:2,  y:35,   h:3.0, b:0, on:1},
+    {k:'logo',  label:'Logo',             x:2,  y:1,    h:6.5, b:0, on:1},
+    {k:'loja',  label:'Cabeçalho (sem logo)', x:2, y:1.5, h:3.2, b:1, on:1},
+    {k:'item',  label:'Item',             x:2,  y:8.6,  h:4.2, b:1, on:1},
+    {k:'proc',  label:'Manipulação',      x:2,  y:14.6, h:2.8, b:0, on:1},
+    {k:'vencT', label:'Título “VALIDADE”',x:2,  y:19.2, h:2.8, b:1, on:1},
+    {k:'venc',  label:'Data/hora validade',x:2, y:22.6, h:4.8, b:1, on:1},
+    {k:'dia',   label:'Dia da semana',    x:2,  y:28.6, h:3.0, b:1, on:1},
+    {k:'nome',  label:'Responsável',      x:2,  y:34.3, h:3.0, b:0, on:1},
   ],
   overlay: [
     {k:'item',  label:'Item',        x:14,   y:11.9, h:2.6, b:1, on:1},
@@ -375,11 +400,11 @@ const DEF_LAYOUT = {
     {k:'nome',  label:'Nome',        x:14,   y:29.4, h:2.6, b:1, on:1},
   ]
 };
-const LAYOUT_VER = 2;
+const LAYOUT_VER = 3;
 const clone = o => JSON.parse(JSON.stringify(o));
 const DEF = {
   mode:'overlay', conn:'browser', lang:'zpl', dpi:203, w:40, h:40, gap:3, dark:10,
-  offX:0, offY:0, baud:'9600', rot:false, hideSep:false, loja:'',
+  offX:0, offY:0, baud:'9600', rot:false, hideSep:false, loja:'', logo:'', logoMono:true, logoTh:150,
   layouts: clone(DEF_LAYOUT), items:[], names:[],
   last:{item:'', val:24, unit:'h', nome:''}, layoutVer: LAYOUT_VER
 };
@@ -390,7 +415,10 @@ function load(){
     const s = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (s){
       const c = Object.assign(clone(DEF), s, {layouts: Object.assign(clone(DEF_LAYOUT), s.layouts||{})});
-      if (s.layoutVer !== LAYOUT_VER){ c.layouts = clone(DEF_LAYOUT); c.offX = 0; c.offY = 0; c.layoutVer = LAYOUT_VER; try{ localStorage.setItem(KEY, JSON.stringify(c)); }catch(e){} }
+      if (s.layoutVer !== LAYOUT_VER){
+        if (!s.layoutVer || s.layoutVer < 2){ c.layouts = clone(DEF_LAYOUT); c.offX = 0; c.offY = 0; }
+        else c.layouts.blank = clone(DEF_LAYOUT.blank);
+        c.layoutVer = LAYOUT_VER; try{ localStorage.setItem(KEY, JSON.stringify(c)); }catch(e){} }
       return c;
     }
   }catch(e){}
@@ -429,18 +457,54 @@ function values(){
   const item = ($('#item').value||'').trim().toUpperCase();
   const nome = ($('#nome').value||'').trim();
   if (cfg.mode === 'blank') return {
-    loja: (cfg.loja||'').toUpperCase(), item,
+    loja: logoActive() ? '' : (cfg.loja||'').toUpperCase(), item,
     proc: p ? 'MANIP: '+fmtD(p,true)+' '+fmtH(p,true) : '',
     vencT: 'VALIDADE:', venc: v ? fmtD(v,true)+' '+fmtH(v,true) : '',
     dia: v ? WEEK[v.getDay()] : '', nome: nome ? 'RESP: '+nome : ''
   };
   return { item, procD:fmtD(p,sep), procH:fmtH(p,sep), vencD:fmtD(v,sep), vencH:fmtH(v,sep), nome };
 }
-const PH = {item:'ITEM', nome:'NOME', loja:'LOJA'};
+const PH = {item:'ITEM', nome:'NOME'};
+/* ---------- logo ---------- */
+let logoImg = null, monoCache = {key:'', url:''};
+function loadLogoImg(){
+  return new Promise(res => {
+    if (!cfg.logo){ logoImg = null; return res(); }
+    const im = new Image(); im.onload = () => { logoImg = im; res(); }; im.onerror = () => { logoImg = null; res(); }; im.src = cfg.logo;
+  });
+}
+function logoEl(){ return cfg.layouts.blank.find(e => e.k==='logo'); }
+function logoActive(){ const e = logoEl(); return !!(logoImg && e && e.on); }
+function logoWmm(e){ return logoImg ? e.h * logoImg.naturalWidth / logoImg.naturalHeight : 0; }
+function logoBitmap(e, invert){
+  const wd = Math.max(1, d(logoWmm(e))), hd = Math.max(1, d(e.h)), bpr = Math.ceil(wd/8);
+  const c = document.createElement('canvas'); c.width = wd; c.height = hd;
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,wd,hd); x.drawImage(logoImg,0,0,wd,hd);
+  const px = x.getImageData(0,0,wd,hd).data, out = new Uint8Array(bpr*hd);
+  if (invert) out.fill(0xFF);
+  for (let yy=0; yy<hd; yy++) for (let xx=0; xx<wd; xx++){
+    const i = (yy*wd+xx)*4, lum = 0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];
+    if (lum < cfg.logoTh){ const bi = yy*bpr+(xx>>3), m = 0x80>>(xx&7); if (invert) out[bi] &= ~m; else out[bi] |= m; }
+  }
+  return {wd, hd, bpr, out};
+}
+function logoMonoURL(e){
+  const key = [cfg.logo.length, cfg.logo.slice(-40), e.h, cfg.logoTh, cfg.dpi].join('|');
+  if (monoCache.key === key) return monoCache.url;
+  const {wd, hd, bpr, out} = logoBitmap(e, false);
+  const c = document.createElement('canvas'); c.width = wd; c.height = hd;
+  const x = c.getContext('2d'), img = x.createImageData(wd, hd);
+  for (let yy=0; yy<hd; yy++) for (let xx=0; xx<wd; xx++){
+    const on = out[yy*bpr+(xx>>3)] & (0x80>>(xx&7)), i = (yy*wd+xx)*4;
+    img.data[i]=img.data[i+1]=img.data[i+2]= on?0:255; img.data[i+3]=255;
+  }
+  x.putImageData(img,0,0); monoCache = {key, url:c.toDataURL('image/png')};
+  return monoCache.url;
+}
 function elements(preview){
   const val = values();
   return cfg.layouts[cfg.mode].map((e,i)=>({...e, i}))
-    .filter(e => e.on && (val[e.k] || (preview && PH[e.k])))
+    .filter(e => e.k!=='logo' && e.on && (val[e.k] || (preview && PH[e.k])))
     .map(e => ({...e, text: val[e.k] || PH[e.k], ph: !val[e.k]}));
 }
 
@@ -448,7 +512,9 @@ function elements(preview){
 function mkDiv(cls, css, txt){ const d=document.createElement('div'); d.className=cls; Object.assign(d.style, css); if(txt!=null) d.textContent=txt; return d; }
 function drawTemplate(el){
   // Aproximação visual da etiqueta pré-impressa (só na prévia, não é impressa)
-  el.appendChild(mkDiv('logo', {left:'8mm', top:'2.2mm', width:'24mm', height:'6.4mm'}, 'LOGO PRÉ-IMPRESSO'));
+  if (logoImg){ const im = document.createElement('img'); im.className='tlogo'; im.src = cfg.logo; im.alt='';
+    Object.assign(im.style, {left:'8mm', top:'2.2mm', width:'24mm', height:'6.4mm'}); el.appendChild(im); }
+  else el.appendChild(mkDiv('logo', {left:'8mm', top:'2.2mm', width:'24mm', height:'6.4mm'}, 'LOGO PRÉ-IMPRESSO'));
   const lines = [[11.9,'Item:',13.6,'u',14,36],[18.2,'Data(Proc.):',15,'d'],[23.7,'Data(Venc.):',15,'d'],[29.4,'Nome:',13.6,'u',14,37]];
   for (const L of lines){
     const [y, txt, end, kind] = L;
@@ -472,6 +538,13 @@ function renderLabel(el, {template=false, grid=false, offset=false, preview=fals
   const inner = mkDiv('inner', offset ? {transform:`translate(${cfg.offX}mm,${cfg.offY}mm)`} : {});
   el.appendChild(inner);
   if (grid) { drawGrid(inner); return; }
+  if (cfg.mode==='blank' && logoActive()){
+    const le = logoEl(), i = cfg.layouts.blank.indexOf(le), im = document.createElement('img');
+    im.className = 't lg' + (preview && i===selIdx ? ' sel' : ''); im.dataset.i = i; im.draggable = false; im.alt = '';
+    im.src = cfg.logoMono ? logoMonoURL(le) : cfg.logo;
+    Object.assign(im.style, {left:le.x+'mm', top:le.y+'mm', height:le.h+'mm', width:logoWmm(le)+'mm'});
+    inner.appendChild(im);
+  }
   for (const e of elements(preview)){
     const t = mkDiv('t'+(preview&&e.ph?' ph':'')+(preview&&e.i===selIdx?' sel':''), {left:e.x+'mm', top:e.y+'mm', fontSize:e.h+'mm', fontWeight:e.b?'700':'400'}, e.text);
     t.dataset.i = e.i; inner.appendChild(t);
@@ -517,7 +590,11 @@ function gridLines(){
   for (let y=0;y<=H;y+=5) L.push({x:0, y, w:W, h:y%10?0.15:0.3});
   return L;
 }
-function buildRaw(copies, grid){
+function rawLogo(){
+  if (cfg.mode!=='blank' || !logoActive()) return null;
+  const e = logoEl(); return {x: d(e.x+cfg.offX), y: d(e.y+cfg.offY), e};
+}
+function buildRawParts(copies, grid){
   const els = grid ? [] : elements();
   const lines = grid ? gridLines() : [];
   const ox = cfg.offX, oy = cfg.offY, W = d(cfg.w), H = d(cfg.h), boldShift = cfg.dpi>=300?2:1;
@@ -526,24 +603,38 @@ function buildRaw(copies, grid){
 
   if (cfg.lang === 'zpl'){
     let s = `~SD${pad(Math.min(30, cfg.dark*2))}\n^XA\n^CI28\n^PW${W}\n^LL${H}\n^LH0,0\n^PO${cfg.rot?'I':'N'}\n`;
+    const lg = grid ? null : rawLogo();
+    if (lg){ const b = logoBitmap(lg.e, false); let hex=''; for (const v of b.out) hex += v.toString(16).padStart(2,'0').toUpperCase();
+      s += `^FO${lg.x},${lg.y}^GFA,${b.out.length},${b.out.length},${b.bpr},${hex}^FS\n`; }
     for (const it of items){ const h=d(it.h); s += `^FO${d(it.x)},${d(it.y)}^A0N,${h},${Math.round(h*0.9)}^FD${it.text.replace(/[\^~]/g,' ')}^FS\n`; }
     for (const l of lines){ const w=Math.max(1,d(l.w)), h=Math.max(1,d(l.h)), t=Math.min(w,h); s += `^FO${d(l.x+ox)},${d(l.y+oy)}^GB${w},${h},${t}^FS\n`; }
     s += `^PQ${copies}\n^XZ\n`;
-    return s;
+    return [s];
   }
   if (cfg.lang === 'tspl'){
+    const parts = [];
     let s = `SIZE ${cfg.w} mm,${cfg.h} mm\r\nGAP ${cfg.gap} mm,0 mm\r\nDIRECTION ${cfg.rot?0:1}\r\nDENSITY ${cfg.dark}\r\nCLS\r\n`;
+    const lg = grid ? null : rawLogo();
+    if (lg){ const b = logoBitmap(lg.e, true); parts.push(s + `BITMAP ${lg.x},${lg.y},${b.bpr},${b.hd},0,`, b.out); s = '\r\n'; }
     for (const it of items){ const f=pickFont(TS_FONTS, d(it.h)); s += `TEXT ${d(it.x)},${d(it.y)},"${f.f}",0,${f.m},${f.m},"${strip(it.text).replace(/"/g,"'")}"\r\n`; }
     for (const l of lines) s += `BAR ${d(l.x+ox)},${d(l.y+oy)},${Math.max(1,d(l.w))},${Math.max(1,d(l.h))}\r\n`;
     s += `PRINT 1,${copies}\r\n`;
-    return s;
+    parts.push(s); return parts;
   }
   // EPL2 / PPLB
+  const parts = [];
   let s = `\nN\nq${W}\nQ${H},${d(cfg.gap)}\nD${cfg.dark}\n${cfg.rot?'ZB':'ZT'}\n`;
+  const lg = grid ? null : rawLogo();
+  if (lg){ const b = logoBitmap(lg.e, true); parts.push(s + `GW${lg.x},${lg.y},${b.bpr},${b.hd},`, b.out); s = '\n'; }
   for (const it of items){ const f=pickFont(EPL_FONTS, d(it.h)); s += `A${d(it.x)},${d(it.y)},0,${f.f},${f.m},${f.m},N,"${strip(it.text).replace(/"/g,"'")}"\n`; }
   for (const l of lines) s += `LO${d(l.x+ox)},${d(l.y+oy)},${Math.max(1,d(l.w))},${Math.max(1,d(l.h))}\n`;
   s += `P${copies}\n`;
-  return s;
+  parts.push(s); return parts;
+}
+function buildRaw(copies, grid){ return buildRawParts(copies, grid).map(p => typeof p==='string' ? p : `«${p.length} bytes de imagem»`).join(''); }
+function partsToBytes(parts){
+  const enc = new TextEncoder(), arrs = parts.map(p => typeof p==='string' ? enc.encode(p) : p);
+  const out = new Uint8Array(arrs.reduce((a,b)=>a+b.length,0)); let o=0; for (const a of arrs){ out.set(a,o); o+=a.length; } return out;
 }
 function calibCmd(){ return cfg.lang==='zpl' ? '~JC\n' : cfg.lang==='tspl' ? 'GAPDETECT\r\n' : '\nxa\n'; }
 
@@ -599,8 +690,8 @@ async function disconnect(){
   try{ if (serialPort){ await serialPort.close(); } }catch(e){}
   usbDev=null; usbEp=null; serialPort=null; updateStatus(); toast('Desconectado.');
 }
-async function sendRaw(str){
-  const bytes = new TextEncoder().encode(str);
+async function sendRaw(data){
+  const bytes = typeof data==='string' ? new TextEncoder().encode(data) : partsToBytes(data);
   if (cfg.conn==='usb'){
     if (!usbDev) { await autoReconnect(); if (!usbDev) throw new Error('Nenhuma impressora USB conectada. Clique em “Procurar impressora”.'); }
     const CH = 16384;
@@ -644,7 +735,7 @@ async function doPrint({grid=false, test=false}={}){
   const copies = (grid||test) ? 1 : copiesVal();
   try{
     if (cfg.conn==='browser'){ buildPrintArea(copies, grid); window.print(); }
-    else { await sendRaw(buildRaw(copies, grid)); toast(grid ? 'Grade enviada.' : `${copies} etiqueta(s) enviada(s).`); }
+    else { await sendRaw(buildRawParts(copies, grid)); toast(grid ? 'Grade enviada.' : `${copies} etiqueta(s) enviada(s).`); }
     if (!grid && !test) rememberLists();
   }catch(e){ handleErr(e); }
 }
@@ -677,14 +768,14 @@ function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;'
 function renderLayTable(){
   const L = cfg.layouts[cfg.mode];
   $('#layModeNote').textContent = cfg.mode==='overlay' ? '· modo pré-impressa' : '· modo em branco';
-  $('#layTable').innerHTML = '<tr><th>Imprimir</th><th>Campo</th><th>X (mm)</th><th>Y (mm)</th><th>Altura letra</th><th>Negrito</th></tr>' +
+  $('#layTable').innerHTML = '<tr><th>Imprimir</th><th>Campo</th><th>X (mm)</th><th>Y (mm)</th><th>Altura (mm)</th><th>Negrito</th></tr>' +
     L.map((e,i)=>`<tr>
       <td><input type="checkbox" data-i="${i}" data-p="on" ${e.on?'checked':''}></td>
       <td>${esc(e.label)}</td>
       <td><input type="number" step="0.1" data-i="${i}" data-p="x" value="${e.x}"></td>
       <td><input type="number" step="0.1" data-i="${i}" data-p="y" value="${e.y}"></td>
       <td><input type="number" step="0.1" min="1" data-i="${i}" data-p="h" value="${e.h}"></td>
-      <td><input type="checkbox" data-i="${i}" data-p="b" ${e.b?'checked':''}></td></tr>`).join('');
+      <td>${e.k==='logo' ? '' : `<input type="checkbox" data-i="${i}" data-p="b" ${e.b?'checked':''}>`}</td></tr>`).join('');
 }
 $('#layTable').addEventListener('input', ev => {
   const t = ev.target; if (!t.dataset.p) return;
@@ -739,7 +830,7 @@ $('#calBtn').onclick = async () => { try{ await sendRaw(calibCmd()); toast('Cali
 $('#discBtn').onclick = disconnect;
 $('#showCmdBtn').onclick = () => { $('#cmdOut').textContent = buildRaw(copiesVal(), false); };
 $('#dlBtn').onclick = () => {
-  const blob = new Blob([buildRaw(copiesVal(), false)], {type:'application/octet-stream'});
+  const blob = new Blob([partsToBytes(buildRawParts(copiesVal(), false))], {type:'application/octet-stream'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'etiqueta.prn'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
 };
 
@@ -803,11 +894,50 @@ $('#resetAllBtn').onclick = () => {
   selIdx=-1; save(); renderLayTable(); renderPreview(); toast('Posições e deslocamento restaurados.');
 };
 
+/* ---------- logo UI ---------- */
+function renderLogoUI(){
+  const has = !!cfg.logo;
+  $('#logoThumb').innerHTML = has ? `<img src="${cfg.logo}" alt="Logo">` : '<span class="note">sem logo</span>';
+  $('#logoDel').hidden = !has; $('#logoOpts').hidden = !has || cfg.mode!=='blank';
+  $('#logoMono').checked = !!cfg.logoMono; $('#logoTh').value = cfg.logoTh; $('#logoThVal').textContent = cfg.logoTh;
+  $('#logoThBox').hidden = !cfg.logoMono;
+  $('#logoNote').textContent = !has ? 'PNG, JPG ou SVG. Prefira logo com fundo branco ou transparente.'
+    : cfg.mode==='blank' ? 'A logo será impressa. Arraste-a na prévia para posicionar e ajuste o tamanho em “Ajustar posições” (Altura).'
+    : 'No modo pré-impressa a logo aparece só na prévia; o rolo já vem com ela.';
+}
+$('#logoPick').onclick = () => $('#logoFile').click();
+$('#logoFile').onchange = ev => {
+  const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    const im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, 800 / Math.max(im.naturalWidth||800, im.naturalHeight||800));
+      const c = document.createElement('canvas'); c.width = Math.round((im.naturalWidth||800)*k); c.height = Math.round((im.naturalHeight||400)*k);
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      const prev = cfg.logo; cfg.logo = c.toDataURL('image/png');
+      try{ localStorage.setItem(KEY, JSON.stringify(cfg)); }catch(e){ cfg.logo = prev; return toast('Imagem grande demais para salvar. Use um arquivo menor.', true); }
+      loadLogoImg().then(() => {
+        const le = logoEl(); if (le){ le.on = 1; le.x = Math.round(Math.max(0,(cfg.w - logoWmm(le))/2)*10)/10; }
+        save(); renderLogoUI(); renderLayTable(); renderPreview(); toast('Logo carregada.');
+      });
+    };
+    im.onerror = () => toast('Não consegui abrir essa imagem.', true);
+    im.src = rd.result;
+  };
+  rd.readAsDataURL(f);
+};
+$('#logoDel').onclick = () => { cfg.logo=''; logoImg=null; save(); renderLogoUI(); renderPreview(); toast('Logo removida.'); };
+$('#logoMono').onchange = e => { cfg.logoMono = e.target.checked; save(); renderLogoUI(); renderPreview(); };
+$('#logoTh').oninput = e => { cfg.logoTh = +e.target.value; $('#logoThVal').textContent = cfg.logoTh; save(); renderPreview(); };
+$$('#modeSeg button').forEach(b => b.addEventListener('click', renderLogoUI));
+
 /* ---------- init ---------- */
 $('#item').value = cfg.last.item || '';
 $('#valNum').value = cfg.last.val ?? 24; $('#valUnit').value = cfg.last.unit || 'h';
 $('#nome').value = cfg.last.nome || '';
-setNow(); renderLists(); applyMode(); updateStatus(); autoReconnect();
+setNow(); renderLists(); applyMode(); updateStatus(); autoReconnect(); renderLogoUI();
+loadLogoImg().then(renderPreview);
 window.addEventListener('resize', renderPreview);
 })();
 </script>
