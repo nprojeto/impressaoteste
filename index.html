@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Etiquetas de Validade</title>
+<style id="pageStyle">@page { size: 40mm 40mm; margin: 0; }</style>
+<style>
+:root{
+  --bg:#f3f5f2; --card:#ffffff; --ink:#1d2420; --muted:#66706a; --line:#dde3dd;
+  --accent:#1f7a3f; --accent-ink:#ffffff; --accent-soft:#e3f2e8; --warn:#b4560f; --warn-soft:#fdf0e4;
+  --danger:#b3261e; --field:#fbfcfb; --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121614; --card:#1b201d; --ink:#e6ece8; --muted:#9aa59f; --line:#2c3430;
+    --accent:#3fb16a; --accent-ink:#0d1a12; --accent-soft:#1d3326; --warn:#f0a35c; --warn-soft:#33261a;
+    --danger:#ff8a80; --field:#161a18; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121614; --card:#1b201d; --ink:#e6ece8; --muted:#9aa59f; --line:#2c3430;
+  --accent:#3fb16a; --accent-ink:#0d1a12; --accent-soft:#1d3326; --warn:#f0a35c; --warn-soft:#33261a;
+  --danger:#ff8a80; --field:#161a18; --shadow:none;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.app{max-width:1180px;margin:0 auto;padding:16px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+header.top h1{font-size:21px;margin:0;letter-spacing:-.01em}
+header.top h1 span{color:var(--accent)}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:13px}
+.dot{width:9px;height:9px;border-radius:50%;background:#999}
+.dot.ok{background:#2fa35a}.dot.warn{background:#e39a2d}.dot.off{background:#c9483e}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+.card h2{font-size:15px;margin:0 0 12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+label.f{display:block;font-size:13px;color:var(--muted);margin:0 0 4px}
+.row{display:grid;gap:10px;margin-bottom:12px}
+.r2{grid-template-columns:1fr 1fr}.r3{grid-template-columns:1fr 1fr 1fr}.r4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:520px){.r3,.r4{grid-template-columns:1fr 1fr}}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--field);color:var(--ink);font:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+input.big{font-size:19px;font-weight:600;padding:11px 12px}
+.inline{display:flex;gap:8px;align-items:center}
+.inline > *{flex:1}
+.inline > .shrink{flex:0 0 auto}
+button{font:inherit;cursor:pointer;border-radius:9px;border:1px solid var(--line);background:var(--field);color:var(--ink);padding:9px 13px}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+button.huge{width:100%;font-size:18px;padding:14px}
+button.small{padding:5px 9px;font-size:13px}
+button.ghost{background:transparent}
+button.danger{color:var(--danger)}
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{flex:1;border:0;border-radius:0;background:transparent}
+.seg button.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.note{font-size:13px;color:var(--muted)}
+.warnbox{background:var(--warn-soft);color:var(--warn);border-radius:9px;padding:9px 11px;font-size:13px;margin:8px 0}
+.tag{font-size:11px;padding:2px 7px;border-radius:999px;background:var(--warn-soft);color:var(--warn);margin-left:6px;vertical-align:middle}
+.pv-stage{display:flex;justify-content:center;align-items:center;padding:18px;background:repeating-conic-gradient(var(--line) 0 25%, transparent 0 50%) 0 0/16px 16px;border-radius:12px;min-height:200px}
+.pv-wrap{position:relative}
+.label{position:relative;background:#fff;color:#000;overflow:hidden;transform-origin:0 0;box-shadow:0 2px 10px rgba(0,0,0,.25);border-radius:2mm}
+.label .inner{position:absolute;inset:0}
+.label .t{position:absolute;white-space:nowrap;line-height:1;font-family:Arial,"Liberation Sans",Helvetica,sans-serif;color:#000}
+.label .tpl{position:absolute;white-space:nowrap;line-height:1;font-family:Arial,sans-serif;color:#9aa;font-size:2.5mm}
+.label .tpl.u{border-bottom:.15mm solid #9aa;height:2.6mm}
+.label .logo{position:absolute;border:.2mm dashed #b8c4bb;color:#9aa;font:bold 1.8mm Arial,sans-serif;display:flex;align-items:center;justify-content:center;border-radius:1mm}
+.label .gl{position:absolute;background:#000}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+table.lay{width:100%;border-collapse:collapse;font-size:13px}
+table.lay th{text-align:left;color:var(--muted);font-weight:600;padding:4px}
+table.lay td{padding:3px 4px;border-top:1px solid var(--line)}
+table.lay input[type=number]{padding:5px 6px;width:66px}
+table.lay input[type=checkbox]{width:auto}
+.listbox{display:flex;flex-wrap:wrap;gap:6px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--field);font-size:13px}
+.pill button{border:0;background:transparent;padding:0 5px;color:var(--danger)}
+details{margin-top:12px}
+details summary{cursor:pointer;font-weight:600}
+pre.cmd{background:var(--field);border:1px solid var(--line);border-radius:9px;padding:10px;font-size:12px;max-height:240px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0 10px}
+.tabs button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.panel{display:none}.panel.on{display:block}
+.help h3{font-size:15px;margin:16px 0 6px}
+.help p,.help li{font-size:14px}
+.help code{background:var(--field);border:1px solid var(--line);padding:1px 5px;border-radius:5px;font-size:13px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(30px);opacity:0;background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:10px;transition:.25s;pointer-events:none;z-index:9;max-width:90vw;font-size:14px}
+#toast.show{opacity:1;transform:translateX(-50%)}
+#toast.err{background:var(--danger);color:#fff}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;margin:6px 0}
+.chk input{width:auto}
+#printArea{display:none}
+@media print{
+  html,body{margin:0!important;padding:0!important;background:#fff!important}
+  .app,#toast{display:none!important}
+  #printArea{display:block}
+  #printArea .label{box-shadow:none;border-radius:0;transform:none!important;break-after:page;page-break-after:always}
+  #printArea .label:last-child{break-after:auto;page-break-after:auto}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>Etiquetas de <span>Validade</span></h1>
+    <div class="chip" id="statusChip"><span class="dot" id="statusDot"></span><span id="statusText">—</span></div>
+  </header>
+
+  <div class="grid">
+    <!-- FORM -->
+    <section class="card">
+      <h2>Etiqueta</h2>
+
+      <div class="row">
+        <div>
+          <label class="f">Tipo de etiqueta no rolo</label>
+          <div class="seg" id="modeSeg">
+            <button data-mode="overlay">Pré-impressa (preencher campos)</button>
+            <button data-mode="blank">Em branco (imprimir tudo)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" id="lojaRow">
+        <div>
+          <label class="f" for="loja">Texto do cabeçalho (ex.: nome da loja)</label>
+          <input id="loja" placeholder="Ex.: Loja Centro" maxlength="30">
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label class="f" for="item">Item</label>
+          <input id="item" class="big" list="itemsList" placeholder="Digite ou escolha um item" autocomplete="off" maxlength="40">
+          <datalist id="itemsList"></datalist>
+        </div>
+      </div>
+
+      <div class="row r2">
+        <div>
+          <label class="f" for="valNum">Validade após manipulação</label>
+          <div class="inline">
+            <input id="valNum" type="number" min="0" step="1" value="24">
+            <select id="valUnit" class="shrink" style="width:96px"><option value="h">horas</option><option value="d">dias</option></select>
+          </div>
+          <div class="quick">
+            <button class="small" data-q="2h">2h</button><button class="small" data-q="4h">4h</button>
+            <button class="small" data-q="12h">12h</button><button class="small" data-q="24h">24h</button>
+            <button class="small" data-q="3d">3d</button><button class="small" data-q="5d">5d</button>
+          </div>
+        </div>
+        <div>
+          <label class="f">&nbsp;</label>
+          <button id="saveItemBtn" style="width:100%">Salvar item com esta validade</button>
+          <p class="note" style="margin:6px 0 0">Ao escolher um item salvo, a validade é preenchida sozinha.</p>
+        </div>
+      </div>
+
+      <div class="row r2">
+        <div>
+          <label class="f" for="proc">Data/hora da manipulação</label>
+          <div class="inline">
+            <input id="proc" type="datetime-local">
+            <button id="nowBtn" class="shrink small">Agora</button>
+          </div>
+        </div>
+        <div>
+          <label class="f" for="venc">Vencimento <span id="vencTag" class="tag" hidden>manual</span></label>
+          <div class="inline">
+            <input id="venc" type="datetime-local">
+            <button id="recalcBtn" class="shrink small" title="Recalcular a partir da validade">↻</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row r2">
+        <div>
+          <label class="f" for="nome">Responsável</label>
+          <input id="nome" list="namesList" placeholder="Nome" autocomplete="off" maxlength="25">
+          <datalist id="namesList"></datalist>
+        </div>
+        <div>
+          <label class="f" for="copies">Quantidade de etiquetas</label>
+          <div class="inline">
+            <button class="shrink" id="cMinus">−</button>
+            <input id="copies" type="number" min="1" max="200" value="1" style="text-align:center">
+            <button class="shrink" id="cPlus">+</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="primary huge" id="printBtn">🖨️ Imprimir etiqueta</button>
+    </section>
+
+    <!-- PREVIEW -->
+    <section class="card">
+      <h2>Prévia <span class="note" id="sizeNote" style="text-transform:none;letter-spacing:0"></span></h2>
+      <div class="pv-stage"><div class="pv-wrap" id="pvWrap"><div class="label" id="preview"></div></div></div>
+      <p class="note" id="pvNote" style="margin-top:10px"></p>
+      <label class="chk"><input type="checkbox" id="hideSep"> Não imprimir “/” e “:” (usar os já impressos na etiqueta)</label>
+    </section>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button data-tab="printer" class="on">Impressora</button>
+    <button data-tab="layout">Ajustar posições</button>
+    <button data-tab="lists">Cadastros</button>
+    <button data-tab="help">Ajuda</button>
+  </div>
+
+  <!-- PRINTER -->
+  <section class="card panel on" id="tab-printer">
+    <h2>Configurar e encontrar a impressora</h2>
+    <div class="row r3">
+      <div>
+        <label class="f" for="conn">Forma de conexão</label>
+        <select id="conn">
+          <option value="browser">Driver do Windows/Mac (diálogo de impressão)</option>
+          <option value="usb">USB direto (WebUSB)</option>
+          <option value="serial">Serial / COM (Web Serial)</option>
+        </select>
+      </div>
+      <div id="langBox">
+        <label class="f" for="lang">Linguagem da impressora</label>
+        <select id="lang">
+          <option value="zpl">ZPL / PPLZ (Zebra, Elgin, Argox)</option>
+          <option value="tspl">TSPL (TSC, Tanca, genéricas)</option>
+          <option value="epl">EPL2 / PPLB (Zebra antigas, Argox, Elgin)</option>
+        </select>
+      </div>
+      <div id="dpiBox">
+        <label class="f" for="dpi">Resolução</label>
+        <select id="dpi"><option value="203">203 dpi (8 pontos/mm)</option><option value="300">300 dpi (12 pontos/mm)</option></select>
+      </div>
+    </div>
+
+    <div class="row r4">
+      <div><label class="f" for="w">Largura (mm)</label><input id="w" type="number" step="1" min="10"></div>
+      <div><label class="f" for="h">Altura (mm)</label><input id="h" type="number" step="1" min="10"></div>
+      <div><label class="f" for="gap">Espaço entre etiquetas (mm)</label><input id="gap" type="number" step="0.5" min="0"></div>
+      <div id="darkBox"><label class="f" for="dark">Escuridão (0–15)</label><input id="dark" type="number" min="0" max="15" step="1"></div>
+    </div>
+
+    <div class="row r4">
+      <div><label class="f" for="offX">Deslocar → (mm)</label><input id="offX" type="number" step="0.5"></div>
+      <div><label class="f" for="offY">Deslocar ↓ (mm)</label><input id="offY" type="number" step="0.5"></div>
+      <div id="baudBox"><label class="f" for="baud">Velocidade serial</label>
+        <select id="baud"><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option>115200</option></select></div>
+      <div id="rotBox"><label class="f">&nbsp;</label><label class="chk"><input type="checkbox" id="rot"> Girar 180°</label></div>
+    </div>
+
+    <div id="browserInfo" class="note">
+      Neste modo a impressora é escolhida na janela de impressão do navegador. Configure no driver: papel <b id="paperTxt">40 × 40 mm</b>, margens <b>nenhuma</b>, escala <b>100%</b>. Dica: deixe a impressora de etiquetas como padrão no navegador.
+    </div>
+    <div id="directInfo" class="note" hidden>
+      Use o Chrome ou o Edge no computador. Clique em <b>Procurar impressora</b> e escolha a sua na lista. O navegador lembra a autorização nas próximas vezes.
+    </div>
+    <div id="supportWarn" class="warnbox" hidden></div>
+
+    <div class="actions" style="margin-top:12px">
+      <button class="primary" id="findBtn">🔍 Procurar impressora</button>
+      <button id="testBtn">Imprimir teste</button>
+      <button id="gridBtn">Imprimir grade de alinhamento</button>
+      <button id="calBtn">Calibrar sensor</button>
+      <button id="discBtn" class="ghost">Desconectar</button>
+    </div>
+
+    <details>
+      <summary>Comando gerado / baixar arquivo</summary>
+      <p class="note">Útil para testar ou enviar manualmente (ex.: <code>copy /b etiqueta.prn \\PC\Impressora</code>).</p>
+      <div class="actions"><button class="small" id="showCmdBtn">Gerar comando</button><button class="small" id="dlBtn">Baixar .prn</button></div>
+      <pre class="cmd" id="cmdOut">—</pre>
+    </details>
+  </section>
+
+  <!-- LAYOUT -->
+  <section class="card panel" id="tab-layout">
+    <h2>Posição de cada campo <span class="note" id="layModeNote" style="text-transform:none;letter-spacing:0"></span></h2>
+    <p class="note">Valores em milímetros a partir do canto superior esquerdo da etiqueta. Para mover tudo de uma vez, use “Deslocar” na aba Impressora.</p>
+    <div style="overflow-x:auto"><table class="lay" id="layTable"></table></div>
+    <div class="actions" style="margin-top:12px">
+      <button id="resetLayBtn" class="small">Restaurar posições padrão</button>
+    </div>
+  </section>
+
+  <!-- LISTS -->
+  <section class="card panel" id="tab-lists">
+    <h2>Itens salvos</h2>
+    <div class="listbox" id="itemsBox"></div>
+    <h2 style="margin-top:20px">Responsáveis</h2>
+    <div class="inline" style="max-width:420px;margin-bottom:10px">
+      <input id="newName" placeholder="Adicionar nome"><button class="shrink" id="addNameBtn">Adicionar</button>
+    </div>
+    <div class="listbox" id="namesBox"></div>
+    <h2 style="margin-top:20px">Backup</h2>
+    <p class="note">Copie a configuração (itens, nomes, impressora e posições) para outro computador.</p>
+    <div class="actions">
+      <button id="exportBtn">Exportar configuração</button>
+      <button id="importBtn">Importar configuração</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+    </div>
+  </section>
+
+  <!-- HELP -->
+  <section class="card panel help" id="tab-help">
+    <h2>Como usar</h2>
+    <h3>1. Qual forma de conexão escolher?</h3>
+    <ul>
+      <li><b>Driver do Windows/Mac</b>: mais simples e funciona com qualquer impressora instalada no computador (Elgin, Argox, Zebra, Tanca…). Cadastre no driver um papel de 40 × 40 mm.</li>
+      <li><b>USB direto</b>: o navegador envia comandos ZPL/TSPL/EPL direto para a impressora, sem janela de impressão. No Windows, se aparecer “Access denied”, é porque o driver do fabricante está usando a porta USB. Nesse caso, prefira o modo Driver.</li>
+      <li><b>Serial / COM</b>: para impressoras ligadas por cabo serial ou adaptador USB-serial.</li>
+      <li><b>Impressora em rede (IP)</b>: o navegador não acessa a porta 9100 diretamente. Instale a impressora no Windows (porta TCP/IP) e use o modo Driver.</li>
+    </ul>
+    <h3>2. Alinhar na etiqueta pré-impressa</h3>
+    <ol>
+      <li>Clique em <b>Calibrar sensor</b> (modos USB/Serial) ou use a calibração do próprio driver.</li>
+      <li>Imprima uma etiqueta de teste e veja se os dados caíram em cima das linhas.</li>
+      <li>Se tudo estiver deslocado, ajuste <b>Deslocar →</b> e <b>Deslocar ↓</b>. Se só um campo estiver fora, ajuste-o em <b>Ajustar posições</b>.</li>
+      <li>A <b>grade de alinhamento</b> imprime linhas a cada 5 mm, que ajudam a medir as posições.</li>
+    </ol>
+    <h3>3. Tipo de papel</h3>
+    <p>Risque a etiqueta com a unha. Se escurecer, é papel térmico e não precisa de fita. Se não escurecer, use impressora de <b>transferência térmica</b> com ribbon de cera.</p>
+    <h3>4. Imprimir sem a janela do navegador (modo Driver)</h3>
+    <p>Crie um atalho do Chrome com <code>--kiosk-printing</code> no final do destino. A impressão vai direto para a impressora padrão.</p>
+    <h3>5. Publicar no GitHub Pages</h3>
+    <ol>
+      <li>Crie um repositório e envie este arquivo com o nome <code>index.html</code>.</li>
+      <li>Em <b>Settings → Pages</b>, escolha a branch <code>main</code> e a pasta <code>/ (root)</code>.</li>
+      <li>Acesse pelo endereço <code>https://SEU-USUARIO.github.io/NOME-DO-REPO/</code>. O HTTPS é necessário para USB e Serial.</li>
+    </ol>
+    <p class="note">Os dados ficam salvos só no navegador de cada computador. Use Exportar/Importar em “Cadastros” para copiar entre máquinas.</p>
+    <p class="note"><b>Atenção:</b> os prazos de validade de cada insumo devem seguir o manual da sua operação e a orientação sanitária. O sistema só calcula a data a partir do prazo que você informar.</p>
+  </section>
+</div>
+
+<div id="printArea"></div>
+<div id="toast"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const KEY = 'etiquetasValidade.v1';
+const WEEK = ['DOMINGO','SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO'];
+
+const DEF_LAYOUT = {
+  blank: [
+    {k:'loja',  label:'Cabeçalho',        x:2,  y:1.5,  h:3.2, b:1, on:1},
+    {k:'item',  label:'Item',             x:2,  y:6.5,  h:4.5, b:1, on:1},
+    {k:'proc',  label:'Manipulação',      x:2,  y:13.5, h:3.0, b:0, on:1},
+    {k:'vencT', label:'Título “VALIDADE”',x:2,  y:19,   h:3.0, b:1, on:1},
+    {k:'venc',  label:'Data/hora validade',x:2, y:23,   h:5.0, b:1, on:1},
+    {k:'dia',   label:'Dia da semana',    x:2,  y:29.5, h:3.2, b:1, on:1},
+    {k:'nome',  label:'Responsável',      x:2,  y:35,   h:3.0, b:0, on:1},
+  ],
+  overlay: [
+    {k:'item',  label:'Item',        x:14,   y:11.9, h:2.6, b:1, on:1},
+    {k:'procD', label:'Data proc.',  x:15.3, y:18.2, h:2.4, b:1, on:1},
+    {k:'procH', label:'Hora proc.',  x:29.8, y:18.2, h:2.4, b:1, on:1},
+    {k:'vencD', label:'Data venc.',  x:15.3, y:23.7, h:2.4, b:1, on:1},
+    {k:'vencH', label:'Hora venc.',  x:29.8, y:23.7, h:2.4, b:1, on:1},
+    {k:'nome',  label:'Nome',        x:14,   y:29.4, h:2.6, b:1, on:1},
+  ]
+};
+const clone = o => JSON.parse(JSON.stringify(o));
+const DEF = {
+  mode:'overlay', conn:'browser', lang:'zpl', dpi:203, w:40, h:40, gap:3, dark:10,
+  offX:0, offY:0, baud:'9600', rot:false, hideSep:false, loja:'',
+  layouts: clone(DEF_LAYOUT), items:[], names:[],
+  last:{item:'', val:24, unit:'h', nome:''}
+};
+
+let cfg = load();
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (s) return Object.assign(clone(DEF), s, {layouts: Object.assign(clone(DEF_LAYOUT), s.layouts||{})});
+  }catch(e){}
+  return clone(DEF);
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(cfg)); }catch(e){} }
+
+/* ---------- toast ---------- */
+let tt;
+function toast(msg, err){
+  const t = $('#toast'); t.textContent = msg; t.className = 'show' + (err?' err':'');
+  clearTimeout(tt); tt = setTimeout(()=> t.className = '', err?5000:2500);
+}
+
+/* ---------- dates ---------- */
+const pad = n => String(n).padStart(2,'0');
+function toInput(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function fromInput(s){ if(!s) return null; const [a,b]=s.split('T'); const [y,m,d]=a.split('-').map(Number); const [hh,mm]=(b||'0:0').split(':').map(Number); return new Date(y,m-1,d,hh,mm); }
+function fmtD(d, sep){ if(!d) return ''; const s = sep ? '/' : '  '; return pad(d.getDate())+s+pad(d.getMonth()+1)+s+String(d.getFullYear()).slice(-2); }
+function fmtH(d, sep){ if(!d) return ''; return pad(d.getHours())+(sep?':':'  ')+pad(d.getMinutes()); }
+
+let vencManual = false;
+function recalcVenc(){
+  const p = fromInput($('#proc').value); if(!p) return;
+  const n = parseFloat($('#valNum').value) || 0;
+  const ms = $('#valUnit').value === 'd' ? n*86400000 : n*3600000;
+  $('#venc').value = toInput(new Date(p.getTime()+ms));
+  vencManual = false; $('#vencTag').hidden = true;
+}
+function setNow(){ const d = new Date(); d.setSeconds(0,0); $('#proc').value = toInput(d); if(!vencManual) recalcVenc(); }
+
+/* ---------- values / elements ---------- */
+function values(){
+  const p = fromInput($('#proc').value), v = fromInput($('#venc').value);
+  const sep = !(cfg.mode==='overlay' && cfg.hideSep);
+  const item = ($('#item').value||'').trim().toUpperCase();
+  const nome = ($('#nome').value||'').trim();
+  if (cfg.mode === 'blank') return {
+    loja: (cfg.loja||'').toUpperCase(), item,
+    proc: p ? 'MANIP: '+fmtD(p,true)+' '+fmtH(p,true) : '',
+    vencT: 'VALIDADE:', venc: v ? fmtD(v,true)+' '+fmtH(v,true) : '',
+    dia: v ? WEEK[v.getDay()] : '', nome: nome ? 'RESP: '+nome : ''
+  };
+  return { item, procD:fmtD(p,sep), procH:fmtH(p,sep), vencD:fmtD(v,sep), vencH:fmtH(v,sep), nome };
+}
+function elements(){
+  const val = values();
+  return cfg.layouts[cfg.mode].filter(e => e.on && val[e.k]).map(e => ({...e, text: val[e.k]}));
+}
+
+/* ---------- HTML rendering (preview + driver print) ---------- */
+function mkDiv(cls, css, txt){ const d=document.createElement('div'); d.className=cls; Object.assign(d.style, css); if(txt!=null) d.textContent=txt; return d; }
+function drawTemplate(el){
+  // Aproximação visual da etiqueta pré-impressa (só na prévia, não é impressa)
+  el.appendChild(mkDiv('logo', {left:'8mm', top:'2.2mm', width:'24mm', height:'6.4mm'}, 'LOGO PRÉ-IMPRESSO'));
+  const lines = [[11.9,'Item:',13.6,'u',14,36],[18.2,'Data(Proc.):',15,'d'],[23.7,'Data(Venc.):',15,'d'],[29.4,'Nome:',13.6,'u',14,37]];
+  for (const L of lines){
+    const [y, txt, end, kind] = L;
+    el.appendChild(mkDiv('tpl', {right:(cfg.w-end)+'mm', top:y+'mm'}, txt));
+    if (kind==='u') el.appendChild(mkDiv('tpl u', {left:L[4]+'mm', top:y+'mm', width:(L[5]-L[4])+'mm'}));
+    else {
+      el.appendChild(mkDiv('tpl u', {left:'15.2mm', top:y+'mm', width:'9.2mm'}));
+      el.appendChild(mkDiv('tpl', {left:'24.6mm', top:y+'mm'}, 'Hora'));
+      el.appendChild(mkDiv('tpl u', {left:'29.6mm', top:y+'mm', width:'7.4mm'}));
+    }
+  }
+}
+function drawGrid(inner){
+  for (let x=0; x<=cfg.w; x+=5) inner.appendChild(mkDiv('gl', {left:x+'mm', top:0, width:(x%10?0.15:0.3)+'mm', height:cfg.h+'mm'}));
+  for (let y=0; y<=cfg.h; y+=5) inner.appendChild(mkDiv('gl', {top:y+'mm', left:0, height:(y%10?0.15:0.3)+'mm', width:cfg.w+'mm'}));
+}
+function renderLabel(el, {template=false, grid=false, offset=false}={}){
+  el.innerHTML=''; el.style.width=cfg.w+'mm'; el.style.height=cfg.h+'mm';
+  if (template && cfg.mode==='overlay') drawTemplate(el);
+  const inner = mkDiv('inner', offset ? {transform:`translate(${cfg.offX}mm,${cfg.offY}mm)`} : {});
+  el.appendChild(inner);
+  if (grid) { drawGrid(inner); return; }
+  for (const e of elements())
+    inner.appendChild(mkDiv('t', {left:e.x+'mm', top:e.y+'mm', fontSize:e.h+'mm', fontWeight:e.b?'700':'400'}, e.text));
+}
+function renderPreview(){
+  const el = $('#preview');
+  renderLabel(el, {template:true, offset:true});
+  const pxmm = 96/25.4, target = Math.min(340, ($('#pvWrap').parentElement.clientWidth||340) - 40);
+  const s = Math.max(1, Math.min(4, target / (Math.max(cfg.w, cfg.h)*pxmm)));
+  el.style.transform = `scale(${s})`;
+  $('#pvWrap').style.width = (cfg.w*pxmm*s)+'px'; $('#pvWrap').style.height = (cfg.h*pxmm*s)+'px';
+  $('#sizeNote').textContent = `· ${cfg.w} × ${cfg.h} mm`;
+  $('#pvNote').textContent = cfg.mode==='overlay'
+    ? 'Os textos em cinza simulam o que já vem impresso no rolo (não saem na impressão). Só os dados em preto são impressos.'
+    : 'Tudo o que aparece na prévia será impresso na etiqueta em branco.';
+}
+function buildPrintArea(copies, grid){
+  const pa = $('#printArea'); pa.innerHTML='';
+  for (let i=0;i<copies;i++){ const l = mkDiv('label',{}); renderLabel(l,{grid, offset:true}); pa.appendChild(l); }
+  $('#pageStyle').textContent = `@page { size: ${cfg.w}mm ${cfg.h}mm; margin: 0; }`;
+}
+window.addEventListener('beforeprint', () => { if(!$('#printArea').children.length) buildPrintArea(1,false); });
+window.addEventListener('afterprint', () => { $('#printArea').innerHTML=''; });
+
+/* ---------- raw commands (ZPL / TSPL / EPL) ---------- */
+const d = mm => Math.max(0, Math.round(mm * cfg.dpi / 25.4));
+const strip = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const TS_FONTS = {'1':12,'2':20,'3':24,'4':32,'5':48};
+const EPL_FONTS = {'1':12,'2':16,'3':20,'4':24,'5':48};
+function pickFont(map, t){
+  let best=null;
+  for (const [f,hh] of Object.entries(map)) for (let m=1;m<=4;m++){ const diff=Math.abs(hh*m-t); if(!best||diff<best.diff) best={f,m,diff}; }
+  return best;
+}
+function gridLines(){
+  const L=[]; const W=cfg.w, H=cfg.h;
+  for (let x=0;x<=W;x+=5) L.push({x, y:0, w:x%10?0.15:0.3, h:H});
+  for (let y=0;y<=H;y+=5) L.push({x:0, y, w:W, h:y%10?0.15:0.3});
+  return L;
+}
+function buildRaw(copies, grid){
+  const els = grid ? [] : elements();
+  const lines = grid ? gridLines() : [];
+  const ox = cfg.offX, oy = cfg.offY, W = d(cfg.w), H = d(cfg.h), boldShift = cfg.dpi>=300?2:1;
+  const items = [];
+  for (const e of els){ items.push({...e, x:e.x+ox, y:e.y+oy}); if (e.b) items.push({...e, x:e.x+ox+boldShift*25.4/cfg.dpi, y:e.y+oy}); }
+
+  if (cfg.lang === 'zpl'){
+    let s = `~SD${pad(Math.min(30, cfg.dark*2))}\n^XA\n^CI28\n^PW${W}\n^LL${H}\n^LH0,0\n^PO${cfg.rot?'I':'N'}\n`;
+    for (const it of items){ const h=d(it.h); s += `^FO${d(it.x)},${d(it.y)}^A0N,${h},${Math.round(h*0.9)}^FD${it.text.replace(/[\^~]/g,' ')}^FS\n`; }
+    for (const l of lines){ const w=Math.max(1,d(l.w)), h=Math.max(1,d(l.h)), t=Math.min(w,h); s += `^FO${d(l.x+ox)},${d(l.y+oy)}^GB${w},${h},${t}^FS\n`; }
+    s += `^PQ${copies}\n^XZ\n`;
+    return s;
+  }
+  if (cfg.lang === 'tspl'){
+    let s = `SIZE ${cfg.w} mm,${cfg.h} mm\r\nGAP ${cfg.gap} mm,0 mm\r\nDIRECTION ${cfg.rot?0:1}\r\nDENSITY ${cfg.dark}\r\nCLS\r\n`;
+    for (const it of items){ const f=pickFont(TS_FONTS, d(it.h)); s += `TEXT ${d(it.x)},${d(it.y)},"${f.f}",0,${f.m},${f.m},"${strip(it.text).replace(/"/g,"'")}"\r\n`; }
+    for (const l of lines) s += `BAR ${d(l.x+ox)},${d(l.y+oy)},${Math.max(1,d(l.w))},${Math.max(1,d(l.h))}\r\n`;
+    s += `PRINT 1,${copies}\r\n`;
+    return s;
+  }
+  // EPL2 / PPLB
+  let s = `\nN\nq${W}\nQ${H},${d(cfg.gap)}\nD${cfg.dark}\n${cfg.rot?'ZB':'ZT'}\n`;
+  for (const it of items){ const f=pickFont(EPL_FONTS, d(it.h)); s += `A${d(it.x)},${d(it.y)},0,${f.f},${f.m},${f.m},N,"${strip(it.text).replace(/"/g,"'")}"\n`; }
+  for (const l of lines) s += `LO${d(l.x+ox)},${d(l.y+oy)},${Math.max(1,d(l.w))},${Math.max(1,d(l.h))}\n`;
+  s += `P${copies}\n`;
+  return s;
+}
+function calibCmd(){ return cfg.lang==='zpl' ? '~JC\n' : cfg.lang==='tspl' ? 'GAPDETECT\r\n' : '\nxa\n'; }
+
+/* ---------- connection: WebUSB / Web Serial ---------- */
+let usbDev=null, usbEp=null, serialPort=null;
+async function usbOpen(dev){
+  if (!dev.opened) await dev.open();
+  if (dev.configuration === null) await dev.selectConfiguration(1);
+  let pick=null;
+  for (const iface of dev.configuration.interfaces) for (const alt of iface.alternates){
+    const ep = alt.endpoints.find(e => e.direction==='out' && e.type==='bulk');
+    if (ep && (!pick || alt.interfaceClass===7)) pick = {iface, alt, ep};
+  }
+  if (!pick) throw new Error('Nenhuma saída de dados encontrada neste dispositivo USB.');
+  await dev.claimInterface(pick.iface.interfaceNumber);
+  if (pick.alt.alternateSetting) await dev.selectAlternateInterface(pick.iface.interfaceNumber, pick.alt.alternateSetting);
+  usbDev = dev; usbEp = pick.ep.endpointNumber;
+}
+async function findPrinter(){
+  try{
+    if (cfg.conn === 'browser'){
+      toast('No modo Driver, a impressora é escolhida na janela de impressão. Abrindo teste…');
+      return doPrint({test:true});
+    }
+    if (cfg.conn === 'usb'){
+      if (!navigator.usb) throw new Error('Este navegador não tem WebUSB. Use Chrome ou Edge no computador.');
+      const dev = await navigator.usb.requestDevice({filters:[]});
+      await usbOpen(dev);
+      toast('Conectado: ' + (dev.productName || 'impressora USB'));
+    } else {
+      if (!navigator.serial) throw new Error('Este navegador não tem Web Serial. Use Chrome ou Edge no computador.');
+      const port = await navigator.serial.requestPort();
+      await openSerial(port);
+      toast('Porta serial conectada.');
+    }
+  }catch(e){ handleErr(e); }
+  updateStatus();
+}
+async function openSerial(port){
+  if (serialPort && serialPort !== port) { try{ await serialPort.close(); }catch(e){} }
+  if (!port.writable) await port.open({baudRate: parseInt(cfg.baud,10)});
+  serialPort = port;
+}
+async function autoReconnect(){
+  try{
+    if (cfg.conn==='usb' && navigator.usb && !usbDev){ const ds = await navigator.usb.getDevices(); if (ds[0]) await usbOpen(ds[0]); }
+    if (cfg.conn==='serial' && navigator.serial && !serialPort){ const ps = await navigator.serial.getPorts(); if (ps[0]) await openSerial(ps[0]); }
+  }catch(e){ /* silencioso */ }
+  updateStatus();
+}
+async function disconnect(){
+  try{ if (usbDev){ await usbDev.close(); } }catch(e){}
+  try{ if (serialPort){ await serialPort.close(); } }catch(e){}
+  usbDev=null; usbEp=null; serialPort=null; updateStatus(); toast('Desconectado.');
+}
+async function sendRaw(str){
+  const bytes = new TextEncoder().encode(str);
+  if (cfg.conn==='usb'){
+    if (!usbDev) { await autoReconnect(); if (!usbDev) throw new Error('Nenhuma impressora USB conectada. Clique em “Procurar impressora”.'); }
+    const CH = 16384;
+    for (let i=0;i<bytes.length;i+=CH) await usbDev.transferOut(usbEp, bytes.slice(i,i+CH));
+  } else {
+    if (!serialPort) { await autoReconnect(); if (!serialPort) throw new Error('Nenhuma porta serial conectada. Clique em “Procurar impressora”.'); }
+    const w = serialPort.writable.getWriter(); try{ await w.write(bytes); } finally { w.releaseLock(); }
+  }
+}
+function handleErr(e){
+  if (e && e.name==='NotFoundError') return toast('Nenhuma impressora selecionada.', true);
+  let m = (e && e.message) || String(e);
+  if (/access denied|SecurityError|Unable to claim/i.test(m)) m = 'Acesso negado à USB: o driver do fabricante está usando a impressora. Use o modo “Driver do Windows/Mac”.';
+  toast(m, true); console.error(e);
+}
+if (navigator.usb) navigator.usb.addEventListener('disconnect', ev => { if (ev.device===usbDev){ usbDev=null; updateStatus(); toast('Impressora USB desconectada.', true);} });
+
+function updateStatus(){
+  const dot=$('#statusDot'), txt=$('#statusText');
+  if (cfg.conn==='browser'){ dot.className='dot ok'; txt.textContent='Driver do sistema · escolha na janela de impressão'; }
+  else if (cfg.conn==='usb'){ if (usbDev){ dot.className='dot ok'; txt.textContent='USB · '+(usbDev.productName||'impressora')+' · '+cfg.lang.toUpperCase(); } else { dot.className='dot off'; txt.textContent='USB · não conectada'; } }
+  else { if (serialPort){ dot.className='dot ok'; txt.textContent='Serial · '+cfg.baud+' · '+cfg.lang.toUpperCase(); } else { dot.className='dot off'; txt.textContent='Serial · não conectada'; } }
+  const direct = cfg.conn!=='browser';
+  $('#browserInfo').hidden = direct; $('#directInfo').hidden = !direct;
+  ['#langBox','#dpiBox','#darkBox','#rotBox'].forEach(s => $(s).style.display = direct?'':'none');
+  $('#baudBox').style.display = cfg.conn==='serial'?'':'none';
+  $('#calBtn').style.display = direct?'':'none'; $('#discBtn').style.display = direct?'':'none';
+  $('#findBtn').textContent = direct ? '🔍 Procurar impressora' : '🔍 Abrir janela de impressão (teste)';
+  $('#paperTxt').textContent = `${cfg.w} × ${cfg.h} mm`;
+  const w = $('#supportWarn'); let msg='';
+  if (direct && !window.isSecureContext) msg='USB e Serial só funcionam em página HTTPS (ex.: GitHub Pages) ou em localhost.';
+  else if (cfg.conn==='usb' && !navigator.usb) msg='Este navegador não suporta WebUSB. Use Google Chrome ou Microsoft Edge no computador.';
+  else if (cfg.conn==='serial' && !navigator.serial) msg='Este navegador não suporta Web Serial. Use Google Chrome ou Microsoft Edge no computador.';
+  w.hidden = !msg; w.textContent = msg;
+}
+
+/* ---------- print ---------- */
+function copiesVal(){ return Math.max(1, Math.min(200, parseInt($('#copies').value,10)||1)); }
+async function doPrint({grid=false, test=false}={}){
+  if (!grid && !test && !$('#item').value.trim()) { $('#item').focus(); return toast('Preencha o item.', true); }
+  const copies = (grid||test) ? 1 : copiesVal();
+  try{
+    if (cfg.conn==='browser'){ buildPrintArea(copies, grid); window.print(); }
+    else { await sendRaw(buildRaw(copies, grid)); toast(grid ? 'Grade enviada.' : `${copies} etiqueta(s) enviada(s).`); }
+    if (!grid && !test) rememberLists();
+  }catch(e){ handleErr(e); }
+}
+function rememberLists(){
+  const name = $('#item').value.trim(), nome = $('#nome').value.trim();
+  if (name) upsertItem(name, parseFloat($('#valNum').value)||0, $('#valUnit').value, false);
+  if (nome && !cfg.names.includes(nome)) cfg.names.push(nome);
+  cfg.last = {item:name, val:parseFloat($('#valNum').value)||0, unit:$('#valUnit').value, nome};
+  save(); renderLists();
+}
+function upsertItem(name, val, unit, notify=true){
+  const i = cfg.items.findIndex(x => x.name.toLowerCase()===name.toLowerCase());
+  if (i>=0) cfg.items[i] = {name, val, unit}; else cfg.items.push({name, val, unit});
+  cfg.items.sort((a,b)=>a.name.localeCompare(b.name,'pt'));
+  save(); renderLists(); if (notify) toast(`“${name}” salvo: ${val}${unit}.`);
+}
+
+/* ---------- lists UI ---------- */
+function renderLists(){
+  $('#itemsList').innerHTML = cfg.items.map(i=>`<option value="${esc(i.name)}">${i.val}${i.unit}</option>`).join('');
+  $('#namesList').innerHTML = cfg.names.map(n=>`<option value="${esc(n)}">`).join('');
+  $('#itemsBox').innerHTML = cfg.items.length ? cfg.items.map((i,k)=>`<span class="pill">${esc(i.name)} · <b>${i.val}${i.unit}</b><button data-del-item="${k}" title="Remover">×</button></span>`).join('')
+    : '<span class="note">Nenhum item salvo. Digite um item, defina a validade e clique em “Salvar item”.</span>';
+  $('#namesBox').innerHTML = cfg.names.length ? cfg.names.map((n,k)=>`<span class="pill">${esc(n)}<button data-del-name="${k}" title="Remover">×</button></span>`).join('')
+    : '<span class="note">Nenhum nome salvo.</span>';
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---------- layout editor ---------- */
+function renderLayTable(){
+  const L = cfg.layouts[cfg.mode];
+  $('#layModeNote').textContent = cfg.mode==='overlay' ? '· modo pré-impressa' : '· modo em branco';
+  $('#layTable').innerHTML = '<tr><th>Imprimir</th><th>Campo</th><th>X (mm)</th><th>Y (mm)</th><th>Altura letra</th><th>Negrito</th></tr>' +
+    L.map((e,i)=>`<tr>
+      <td><input type="checkbox" data-i="${i}" data-p="on" ${e.on?'checked':''}></td>
+      <td>${esc(e.label)}</td>
+      <td><input type="number" step="0.1" data-i="${i}" data-p="x" value="${e.x}"></td>
+      <td><input type="number" step="0.1" data-i="${i}" data-p="y" value="${e.y}"></td>
+      <td><input type="number" step="0.1" min="1" data-i="${i}" data-p="h" value="${e.h}"></td>
+      <td><input type="checkbox" data-i="${i}" data-p="b" ${e.b?'checked':''}></td></tr>`).join('');
+}
+$('#layTable').addEventListener('input', ev => {
+  const t = ev.target; if (!t.dataset.p) return;
+  const e = cfg.layouts[cfg.mode][+t.dataset.i];
+  e[t.dataset.p] = t.type==='checkbox' ? (t.checked?1:0) : (parseFloat(t.value)||0);
+  save(); renderPreview();
+});
+$('#resetLayBtn').onclick = () => { cfg.layouts[cfg.mode] = clone(DEF_LAYOUT[cfg.mode]); save(); renderLayTable(); renderPreview(); toast('Posições restauradas.'); };
+
+/* ---------- bind config inputs ---------- */
+function applyMode(){
+  $$('#modeSeg button').forEach(b=>b.classList.toggle('on', b.dataset.mode===cfg.mode));
+  $('#lojaRow').style.display = cfg.mode==='blank' ? '' : 'none';
+  $('#hideSep').parentElement.style.display = cfg.mode==='overlay' ? '' : 'none';
+  renderLayTable(); renderPreview();
+}
+$$('#modeSeg button').forEach(b => b.onclick = () => { cfg.mode=b.dataset.mode; save(); applyMode(); });
+
+const bind = [['conn','conn'],['lang','lang'],['dpi','dpi',Number],['w','w',Number],['h','h',Number],['gap','gap',Number],
+  ['dark','dark',Number],['offX','offX',Number],['offY','offY',Number],['baud','baud'],['loja','loja']];
+for (const [id,key,cast] of bind){
+  const el = $('#'+id); el.value = cfg[key];
+  el.addEventListener('input', () => { cfg[key] = cast ? (cast(el.value)||0) : el.value; save(); renderPreview(); if (['conn','lang','baud','w','h'].includes(key)) { if(key==='conn'){ autoReconnect(); } updateStatus(); } });
+}
+$('#rot').checked = cfg.rot; $('#rot').onchange = e => { cfg.rot = e.target.checked; save(); };
+$('#hideSep').checked = cfg.hideSep; $('#hideSep').onchange = e => { cfg.hideSep = e.target.checked; save(); renderPreview(); };
+
+/* ---------- form events ---------- */
+$('#item').addEventListener('input', () => {
+  const v = $('#item').value.trim().toLowerCase();
+  const it = cfg.items.find(x => x.name.toLowerCase()===v);
+  if (it){ $('#valNum').value = it.val; $('#valUnit').value = it.unit; if(!vencManual) recalcVenc(); }
+  renderPreview();
+});
+['#valNum','#valUnit','#proc'].forEach(s => $(s).addEventListener('input', () => { if(!vencManual) recalcVenc(); renderPreview(); }));
+$('#venc').addEventListener('input', () => { vencManual = true; $('#vencTag').hidden = false; renderPreview(); });
+$('#recalcBtn').onclick = () => { recalcVenc(); renderPreview(); };
+$('#nome').addEventListener('input', renderPreview);
+$('#nowBtn').onclick = () => { setNow(); renderPreview(); };
+$$('.quick button').forEach(b => b.onclick = () => { const q=b.dataset.q; $('#valNum').value=parseInt(q,10); $('#valUnit').value=q.slice(-1); if(!vencManual) recalcVenc(); else { recalcVenc(); } renderPreview(); });
+$('#saveItemBtn').onclick = () => { const n=$('#item').value.trim(); if(!n) return toast('Digite o nome do item primeiro.', true); upsertItem(n, parseFloat($('#valNum').value)||0, $('#valUnit').value); };
+$('#cMinus').onclick = () => { $('#copies').value = Math.max(1, copiesVal()-1); };
+$('#cPlus').onclick = () => { $('#copies').value = Math.min(200, copiesVal()+1); };
+$('#printBtn').onclick = () => { if (!vencManual) setNow(); renderPreview(); doPrint(); };
+document.addEventListener('keydown', e => { if (e.key==='Enter' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); $('#printBtn').click(); } });
+
+/* ---------- printer buttons ---------- */
+$('#findBtn').onclick = findPrinter;
+$('#testBtn').onclick = () => doPrint({test:true});
+$('#gridBtn').onclick = () => doPrint({grid:true});
+$('#calBtn').onclick = async () => { try{ await sendRaw(calibCmd()); toast('Calibração enviada. A impressora vai avançar algumas etiquetas.'); }catch(e){ handleErr(e); } };
+$('#discBtn').onclick = disconnect;
+$('#showCmdBtn').onclick = () => { $('#cmdOut').textContent = buildRaw(copiesVal(), false); };
+$('#dlBtn').onclick = () => {
+  const blob = new Blob([buildRaw(copiesVal(), false)], {type:'application/octet-stream'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'etiqueta.prn'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+};
+
+/* ---------- lists events ---------- */
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (t.dataset.delItem != null){ cfg.items.splice(+t.dataset.delItem,1); save(); renderLists(); }
+  if (t.dataset.delName != null){ cfg.names.splice(+t.dataset.delName,1); save(); renderLists(); }
+});
+$('#addNameBtn').onclick = () => { const n=$('#newName').value.trim(); if(n && !cfg.names.includes(n)){ cfg.names.push(n); save(); renderLists(); } $('#newName').value=''; };
+$('#exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(cfg,null,2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'etiquetas-config.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+};
+$('#importBtn').onclick = () => $('#importFile').click();
+$('#importFile').onchange = async e => {
+  try{ const s = JSON.parse(await e.target.files[0].text()); cfg = Object.assign(clone(DEF), s, {layouts:Object.assign(clone(DEF_LAYOUT), s.layouts||{})}); save(); location.reload(); }
+  catch(err){ toast('Arquivo inválido.', true); }
+};
+
+/* ---------- tabs ---------- */
+$$('#tabs button').forEach(b => b.onclick = () => {
+  $$('#tabs button').forEach(x=>x.classList.toggle('on', x===b));
+  $$('.panel').forEach(p=>p.classList.toggle('on', p.id==='tab-'+b.dataset.tab));
+});
+
+/* ---------- init ---------- */
+$('#item').value = cfg.last.item || '';
+$('#valNum').value = cfg.last.val ?? 24; $('#valUnit').value = cfg.last.unit || 'h';
+$('#nome').value = cfg.last.nome || '';
+setNow(); renderLists(); applyMode(); updateStatus(); autoReconnect();
+window.addEventListener('resize', renderPreview);
+})();
+</script>
+</body>
+</html>
